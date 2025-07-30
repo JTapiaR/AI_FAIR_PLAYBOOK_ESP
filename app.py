@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import streamlit as st
 import json
 
@@ -660,4 +660,3 @@ if playbook_choice == "Fairness Audit Playbook":
 else:
     intervention_playbook()
 
->>>>>>> 3cc2312d2af3ff4ae50fac5ea04d94c8c19f7890
