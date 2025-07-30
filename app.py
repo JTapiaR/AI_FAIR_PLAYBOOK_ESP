@@ -651,12 +651,7 @@ st.sidebar.title("Selección de Playbook")
 playbook_choice = st.sidebar.selectbox(
     "Elige el playbook que quieres usar:",
     ["Fairness Audit Playbook", "Fairness Intervention Playbook"]
+      key="playbook_selector"
 )
 
-st.title(playbook_choice)
-
-if playbook_choice == "Fairness Audit Playbook":
-    audit_playbook()
-else:
-    intervention_playbook()
 
