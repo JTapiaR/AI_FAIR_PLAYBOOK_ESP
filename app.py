@@ -650,7 +650,7 @@ def audit_playbook():
 st.sidebar.title("Selección de Playbook")
 playbook_choice = st.sidebar.selectbox(
     "Elige el playbook que quieres usar:",
-    ["Fairness Audit Playbook", "Fairness Intervention Playbook"]
+    ["Fairness Audit Playbook", "Fairness Intervention Playbook"],
       key="playbook_selector"
 )
 
