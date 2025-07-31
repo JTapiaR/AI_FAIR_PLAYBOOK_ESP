@@ -529,24 +529,54 @@ def inprocessing_fairness_toolkit():
 
     with tab1:
         st.subheader("Objetivos y Restricciones de Equidad")
-        st.info("Incorpora la equidad directamente en la optimización del modelo.")
-        st.markdown("**Métodos Lagrangianos:** Transforma restricciones duras en penalizaciones suaves en la función de pérdida.")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Esto significa incorporar 'reglas de equidad' directamente en las matemáticas que el modelo utiliza para aprender. En lugar de solo buscar la respuesta más precisa, el modelo también debe asegurarse de no violar estas reglas.")
+        
+        st.markdown("**Métodos Lagrangianos:**")
+        with st.expander("🔍 Definición y Ejemplo"):
+            st.write("Es una técnica matemática para convertir una 'restricción dura' (una regla que no se puede romper) en una 'penalización suave'. Imagina que estás entrenando a un robot para que sea rápido, pero no puede pasar de cierta velocidad. En lugar de un límite estricto, le das una penalización cada vez que se acerca al límite. Esto lo anima a mantenerse dentro de los límites de una manera más flexible.")
         st.latex(r''' \mathcal{L}(\theta, \lambda) = L(\theta) + \sum_{i=1}^{k} \lambda_i C_i(\theta) ''')
-        st.markdown("**Viabilidad y Compensaciones:** Entiende la tensión entre equidad y rendimiento.")
-        st.markdown("**Interseccionalidad:** Las restricciones deben considerar combinaciones de atributos.")
+        st.text_area("Aplica a tu caso: ¿Qué restricción de equidad (ej. diferencia máxima de aprobación) quieres implementar?", key="in_q1")
+
+        st.markdown("**Viabilidad y Compensaciones:**")
+        with st.expander("🔍 Definición y Ejemplo"):
+            st.write("No siempre es posible ser perfectamente justo y perfectamente preciso al mismo tiempo. A menudo, hay una 'compensación' (trade-off). Mejorar la equidad puede reducir ligeramente la precisión general, y viceversa. Es crucial entender este equilibrio.")
+            st.write("**Ejemplo de Interseccionalidad:** Forzar la igualdad de resultados para todos los subgrupos (ej. mujeres latinas, hombres asiáticos) puede ser matemáticamente imposible o requerir un sacrificio de precisión tan grande que el modelo deja de ser útil.")
+        st.text_area("Aplica a tu caso: ¿Qué compensación entre precisión y equidad estás dispuesto a aceptar?", key="in_q2")
+
 
     with tab2:
         st.subheader("Enfoques de Debiasing Adversario")
-        st.info("Usa aprendizaje adversario para que los modelos 'desaprendan' patrones discriminatorios.")
-        st.markdown("**Arquitectura:** Un **Predictor** compite contra un **Adversario**. El predictor aprende a engañar al adversario, creando representaciones sin información del atributo protegido.")
-        st.markdown("**Optimización:** El entrenamiento puede ser inestable. Requiere equilibrio de componentes, inversión de gradiente y entrenamiento progresivo.")
-    
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Imagina un juego entre dos IAs: un 'Predictor' que intenta hacer su trabajo (ej. evaluar currículums) y un 'Adversario' que intenta adivinar el atributo protegido (ej. el género del candidato) basándose en las decisiones del Predictor. El Predictor gana si hace buenas evaluaciones Y logra engañar al Adversario. Con el tiempo, el Predictor aprende a tomar decisiones sin basarse en información relacionada con el género.")
+        
+        st.markdown("**Arquitectura:**")
+        with st.expander("💡 Simulador de Arquitectura Adversaria"):
+            st.graphviz_chart("""
+            digraph {
+                rankdir=LR;
+                node [shape=box, style=rounded];
+                "Datos de Entrada (X)" -> "Predictor";
+                "Predictor" -> "Predicción (Ŷ)";
+                "Predictor" -> "Adversario" [label="Intenta engañar"];
+                "Adversario" -> "Predicción de Atributo Protegido (Â)";
+                "Atributo Protegido (A)" -> "Adversario" [style=dashed, label="Compara para aprender"];
+            }
+            """)
+        st.text_area("Aplica a tu caso: Describe la arquitectura que usarías.", placeholder="Ej: Un predictor basado en BERT para analizar CVs y un adversario de 3 capas para predecir el género a partir de las representaciones internas.", key="in_q3")
+
+        st.markdown("**Optimización:**")
+        with st.expander("🔍 Definición y Ejemplo"):
+             st.write("El entrenamiento puede ser inestable porque el Predictor y el Adversario tienen objetivos opuestos. Se necesitan técnicas especiales, como la 'inversión de gradiente', para que el Predictor aprenda a 'desaprender' el sesgo activamente.")
+        st.text_area("Aplica a tu caso: ¿Qué desafíos de optimización prevés y cómo los abordarías?", placeholder="Ej: El adversario podría volverse demasiado fuerte al principio. Usaremos un aumento gradual de su peso en la función de pérdida.", key="in_q4")
+
     with tab3:
         st.subheader("Optimización Multiobjetivo para la Equidad")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("En lugar de combinar la precisión y la equidad en una sola meta, este enfoque las trata como dos objetivos separados que deben equilibrarse. El objetivo es encontrar un conjunto de 'soluciones óptimas de Pareto', donde no se puede mejorar la equidad sin sacrificar algo de precisión, y viceversa.")
         with st.expander("💡 Ejemplo Interactivo: Frontera de Pareto"):
             st.write("Explora la **frontera de Pareto**, que visualiza la compensación (trade-off) entre la precisión de un modelo y su equidad. No se puede mejorar uno sin empeorar el otro.")
             
-            # Datos simulados para la frontera
             np.random.seed(10)
             accuracy = np.linspace(0.80, 0.95, 20)
             fairness_score = 1 - np.sqrt(accuracy - 0.79) + np.random.normal(0, 0.02, 20)
@@ -559,17 +589,60 @@ def inprocessing_fairness_toolkit():
             ax.set_ylabel("Puntuación de Equidad")
             ax.grid(True, linestyle='--', alpha=0.6)
             st.pyplot(fig)
-            st.info("Cada punto representa un modelo diferente. Los modelos en el borde superior derecho son 'óptimos': no puedes encontrar un modelo más justo sin sacrificar precisión, y viceversa. La elección de qué punto usar depende de las prioridades de tu proyecto.")
-        st.info("Navega sistemáticamente las tensiones entre equidad y rendimiento.")
-        st.text_area("Análisis y Definición de Objetivos", placeholder="Define tus métricas de rendimiento y criterios de equidad aquí.", key="i1")
+            st.info("Cada punto representa un modelo diferente. Los modelos en el borde superior derecho son 'óptimos'. La elección de qué punto usar depende de las prioridades de tu proyecto.")
+        st.text_area("Aplica a tu caso: ¿Cuáles son los múltiples objetivos que necesitas equilibrar?", placeholder="Ej: 1. Maximizar la precisión en la predicción de impago. 2. Minimizar la diferencia en la tasa de aprobación entre grupos demográficos. 3. Minimizar la diferencia en la tasa de falsos negativos.", key="in_q5")
 
     with tab4:
         st.subheader("Catálogo de Patrones de Implementación")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Estos son fragmentos de código o pseudocódigo que muestran cómo se ven en la práctica las técnicas de in-procesamiento. Sirven como plantillas reutilizables para implementar la equidad en tu propio código.")
         st.code("""
+# Ejemplo de una función de pérdida con regularización de equidad
 def fairness_regularized_loss(original_loss, predictions, protected_attribute):
+  # Calcula una penalización basada en la disparidad de las predicciones
   fairness_penalty = calculate_disparity(predictions, protected_attribute)
+  
+  # Combina la pérdida original con la penalización de equidad
+  # lambda controla la importancia que se le da a la equidad
   return original_loss + lambda * fairness_penalty
         """, language="python")
+
+    # --- Sección de Reporte ---
+    st.markdown("---")
+    st.header("Generar Reporte del Toolkit de In-procesamiento")
+    if st.button("Generar Reporte de In-procesamiento", key="gen_inproc_report"):
+        report_data = {
+            "Objetivos y Restricciones": {
+                "Restricción de Equidad": st.session_state.in_q1,
+                "Análisis de Compensaciones": st.session_state.in_q2,
+            },
+            "Debiasing Adversario": {
+                "Descripción de la Arquitectura": st.session_state.in_q3,
+                "Plan de Optimización": st.session_state.in_q4,
+            },
+            "Optimización Multiobjetivo": {
+                "Objetivos a Equilibrar": st.session_state.in_q5,
+            }
+        }
+        
+        report_md = "# Reporte del Toolkit de Equidad en In-procesamiento\n\n"
+        for section, content in report_data.items():
+            report_md += f"## {section}\n"
+            for key, value in content.items():
+                report_md += f"**{key}:**\n{value}\n\n"
+        
+        st.session_state.inproc_report_md = report_md
+        st.success("¡Reporte generado exitosamente!")
+
+    if 'inproc_report_md' in st.session_state and st.session_state.inproc_report_md:
+        st.subheader("Vista Previa del Reporte")
+        st.markdown(st.session_state.inproc_report_md)
+        st.download_button(
+            label="Descargar Reporte de In-procesamiento",
+            data=st.session_state.inproc_report_md,
+            file_name="reporte_inprocesamiento.md",
+            mime="text/markdown"
+        )
 
 def postprocessing_fairness_toolkit():
     st.header("📊 Toolkit de Equidad en Post-procesamiento")
