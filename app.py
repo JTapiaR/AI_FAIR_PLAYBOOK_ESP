@@ -116,7 +116,86 @@ def run_rejection_simulation():
     coverage = (len(automated_low) + len(automated_high)) / len(scores)
     st.metric("Tasa de Cobertura (Automatización)", f"{coverage:.1%}")
     st.info("Ajusta los umbrales para ver cómo cambia la cantidad de casos que se automatizan vs. los que requieren revisión humana. Un rango de rechazo más amplio aumenta la equidad en casos difíciles a costa de una menor automatización.")
+    
+def run_matching_simulation():
+    st.markdown("#### Simulación de Emparejamiento (Matching)")
+    st.write("Compara dos grupos para estimar un efecto. El emparejamiento busca individuos 'similares' en ambos grupos para hacer una comparación más justa.")
+    np.random.seed(0)
+    x_treat = np.random.normal(5, 1.5, 50)
+    y_treat = 2 * x_treat + 5 + np.random.normal(0, 2, 50)
+    x_control = np.random.normal(3.5, 1.5, 50)
+    y_control = 2 * x_control + np.random.normal(0, 2, 50)
 
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    ax1.scatter(x_treat, y_treat, c='red', label='Tratamiento', alpha=0.7)
+    ax1.scatter(x_control, y_control, c='blue', label='Control', alpha=0.7)
+    ax1.set_title("Antes del Emparejamiento")
+    ax1.set_xlabel("Característica (ej. Gasto previo)")
+    ax1.set_ylabel("Resultado (ej. Compras)")
+    ax1.legend()
+    ax1.grid(True, linestyle='--', alpha=0.5)
+
+    matched_indices = [np.argmin(np.abs(x_c - x_treat)) for x_c in x_control]
+    x_treat_matched = x_treat[matched_indices]
+    y_treat_matched = y_treat[matched_indices]
+
+    ax2.scatter(x_treat_matched, y_treat_matched, c='red', label='Tratamiento (Emparejado)', alpha=0.7)
+    ax2.scatter(x_control, y_control, c='blue', label='Control', alpha=0.7)
+    ax2.set_title("Después del Emparejamiento")
+    ax2.set_xlabel("Característica (ej. Gasto previo)")
+    ax2.legend()
+    ax2.grid(True, linestyle='--', alpha=0.5)
+    
+    st.pyplot(fig)
+    st.info("A la izquierda, los grupos no son directamente comparables. A la derecha, hemos seleccionado un subconjunto del grupo de tratamiento que es 'similar' al de control, permitiendo una estimación más justa del efecto del tratamiento.")
+
+def run_rd_simulation():
+    st.markdown("#### Simulación de Regresión por Discontinuidad (RD)")
+    st.write("La RD se usa cuando un tratamiento se asigna basado en un umbral (ej. una calificación mínima para una beca). Se compara a los individuos justo por encima y por debajo del umbral para estimar el efecto del tratamiento.")
+    np.random.seed(42)
+    cutoff = st.slider("Valor del Umbral (Cutoff)", 40, 60, 50, key="rd_cutoff")
+    
+    x = np.linspace(0, 100, 200)
+    y = 10 + 0.5 * x + np.random.normal(0, 5, 200)
+    treatment_effect = 15
+    y[x >= cutoff] += treatment_effect
+
+    fig, ax = plt.subplots()
+    ax.scatter(x[x < cutoff], y[x < cutoff], c='blue', label='Control (No recibió tratamiento)')
+    ax.scatter(x[x >= cutoff], y[x >= cutoff], c='red', label='Tratamiento')
+    ax.axvline(x=cutoff, color='gray', linestyle='--', label=f'Umbral en {cutoff}')
+    ax.set_title("Efecto del Tratamiento en el Umbral")
+    ax.set_xlabel("Variable de asignación (ej. Calificación de examen)")
+    ax.set_ylabel("Resultado (ej. Ingreso futuro)")
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig)
+    st.info(f"El 'salto' o discontinuidad en la línea de resultados en el punto del umbral ({cutoff}) es una estimación del efecto causal del tratamiento. Aquí, el efecto es de aproximadamente **{treatment_effect}** unidades.")
+
+def run_did_simulation():
+    st.markdown("#### Simulación de Diferencia en Diferencias (DiD)")
+    st.write("DiD compara el cambio en los resultados a lo largo del tiempo entre un grupo que recibe un tratamiento y uno que no. Asume que ambos grupos habrían seguido 'tendencias paralelas' sin el tratamiento.")
+    
+    time = ['Antes', 'Después']
+    control_outcomes = [20, 25] 
+    treat_outcomes = [15, 28]
+
+    fig, ax = plt.subplots()
+    ax.plot(time, control_outcomes, 'bo-', label='Grupo de Control (Observado)')
+    ax.plot(time, treat_outcomes, 'ro-', label='Grupo de Tratamiento (Observado)')
+    
+    counterfactual = [treat_outcomes[0], treat_outcomes[0] + (control_outcomes[1] - control_outcomes[0])]
+    ax.plot(time, counterfactual, 'r--', label='Grupo de Tratamiento (Contrafactual)')
+    
+    ax.set_title("Estimación del Efecto del Tratamiento con DiD")
+    ax.set_ylabel("Resultado")
+    ax.set_ylim(10, 35)
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig)
+    
+    effect = treat_outcomes[1] - counterfactual[1]
+    st.info(f"La línea punteada muestra la 'tendencia paralela' que el grupo de tratamiento habría seguido sin la intervención. La diferencia vertical entre la línea roja sólida y la punteada en el período 'Después' es el efecto del tratamiento, estimado en **{effect}** unidades.")
 #======================================================================
 # --- FAIRNESS INTERVENTION PLAYBOOK ---
 #======================================================================
@@ -132,7 +211,7 @@ def causal_fairness_toolkit():
     if 'causal_report' not in st.session_state:
         st.session_state.causal_report = {}
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Identificación", "Análisis Contrafactual", "Diagrama Causal", "Inferencia Causal"])
+    tab1, tab2, tab3, tab4, tab5  = st.tabs(["Identificación", "Análisis Contrafactual", "Diagrama Causal", "Inferencia Causal","Interseccionalidad"])
 
     with tab1:
         st.subheader("Marco de Identificación de Mecanismos de Discriminación")
@@ -250,6 +329,46 @@ def causal_fairness_toolkit():
             st.write("Compara el cambio en los resultados a lo largo del tiempo entre un grupo de tratamiento y un grupo de control. La 'diferencia en diferencias' entre los grupos antes y después del tratamiento estima el efecto causal.")
         with st.expander("💡 Ejemplo Interactivo: Simulación de DiD"):
             run_did_simulation()
+    with tab5:
+        st.subheader("Aplicando la Perspectiva Interseccional al Análisis Causal")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("La interseccionalidad en el análisis causal significa reconocer que las **causas del sesgo no son iguales para todos**. Por ejemplo, la razón por la que un modelo es injusto para las mujeres negras puede ser diferente a por qué es injusto para los hombres negros o las mujeres blancas. Debemos modelar cómo la combinación de identidades crea rutas causales únicas de discriminación.")
+        
+        with st.expander("💡 Ejemplo Interactivo: Diagrama Causal Interseccional"):
+            st.write("Observa cómo un diagrama causal se vuelve más complejo y preciso al considerar un nodo interseccional.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Modelo Causal Simplista**")
+                st.graphviz_chart("""
+                digraph {
+                    rankdir=LR;
+                    Género -> "Años de Experiencia";
+                    Raza -> "Tipo de Educación";
+                    "Años de Experiencia" -> "Decisión";
+                    "Tipo de Educación" -> "Decisión";
+                }
+                """)
+            with col2:
+                st.write("**Modelo Causal Interseccional**")
+                st.graphviz_chart("""
+                digraph {
+                    rankdir=LR;
+                    subgraph cluster_0 {
+                        label = "Identidad Interseccional";
+                        "Mujer Negra" [shape=box];
+                    }
+                    "Mujer Negra" -> "Acceso a Redes Profesionales" [label="Ruta Específica"];
+                    "Acceso a Redes Profesionales" -> "Decisión";
+                    "Género" -> "Años de Experiencia" -> "Decisión";
+                    "Raza" -> "Tipo de Educación" -> "Decisión";
+                }
+                """)
+            st.info("El modelo interseccional revela una nueva ruta causal ('Acceso a Redes Profesionales') que afecta específicamente al subgrupo 'Mujer Negra', un factor que los modelos simplistas ignorarían.")
+
+        st.text_area("Aplica a tu caso: ¿Qué rutas causales únicas podrían afectar a los subgrupos interseccionales en tu sistema?", 
+                     placeholder="Ejemplo: En nuestro sistema de préstamos, la interacción de 'ser mujer' y 'vivir en zona rural' crea una ruta causal única a través de la 'falta de historial con bancos grandes', que no afecta a otros grupos de la misma manera.", 
+                     key="causal_intersectional")
 
     # --- Sección de Reporte ---
     st.markdown("---")
@@ -735,19 +854,110 @@ def audit_playbook():
 
     if page == "Cómo Navegar este Playbook":
         st.header("Cómo Navegar Este Playbook")
-        # ... (Contenido original) ...
+        st.markdown("""
+        **El Marco de Cuatro Componentes** – Sigue secuencialmente a través de:
+        
+        1. **Evaluación del Contexto Histórico (HCA)** – Descubre sesgos sistémicos y desequilibrios de poder en tu dominio.
+        
+        2. **Selección de Definición de Equidad (FDS)**
+         – Elige las definiciones de equidad apropiadas basadas en tu contexto y objetivos.
+        
+        3. **Identificación de Fuentes de Sesgo (BSI)** – Identifica y prioriza las formas en que el sesgo puede entrar en tu sistema.
+        
+        4. **Métricas Comprensivas de Equidad (CFM)**
+         – Implementa métricas cuantitativas para el monitoreo y la presentación de informes.
+
+        **Consejos:**
+        - Avanza por las secciones en orden, pero siéntete libre de retroceder si surgen nuevas ideas.
+        - Usa los botones de **Guardar Resumen** en cada herramienta para registrar tus hallazgos.
+        - Consulta los ejemplos incrustados en cada sección para ver cómo otros han aplicado estas herramientas.
+        """)       
     elif page == "Evaluación del Contexto Histórico":
         st.header("Herramienta de Evaluación del Contexto Histórico")
-        # ... (Contenido original) ...
+        with st.expander("🔍 Definición Amigable"):
+            st.write("""
+            El **Contexto Histórico** es el trasfondo social y cultural en el que se utilizará tu IA. Es importante porque los sesgos no nacen en los algoritmos, sino en la sociedad. Entender la historia de la discriminación en áreas como la banca o la contratación nos ayuda a anticipar dónde nuestra IA podría fallar y perpetuar injusticias pasadas.
+            """)
+        st.subheader("1. Cuestionario Estructurado")
+        st.markdown("Esta sección te ayuda a descubrir patrones relevantes de discriminación histórica.")
+        
+        q1 = st.text_area("¿En qué dominio específico operará este sistema (ej. préstamos, contratación, salud)?", key="audit_q1")
+        q2 = st.text_area("¿Cuál es la función específica del sistema o caso de uso dentro de ese dominio?", key="audit_q2")
+        q3 = st.text_area("¿Cuáles son los patrones de discriminación histórica documentados en este dominio?", key="audit_q3")
+        q4 = st.text_area("¿Qué fuentes de datos históricos se utilizan o se referencian en este sistema?", key="audit_q4")
+        q5 = st.text_area("¿Cómo se definieron históricamente las categorías clave (ej. género, riesgo crediticio) y han evolucionado?", key="audit_q5")
+        q6 = st.text_area("¿Cómo se midieron históricamente las variables (ej. ingresos, educación)? ¿Podrían codificar sesgos?", key="audit_q6")
+        q7 = st.text_area("¿Han servido otras tecnologías para roles similares en este dominio? ¿Desafiaron o reforzaron las desigualdades?", key="audit_q7")
+        q8 = st.text_area("¿Cómo podría la automatización amplificar los sesgos pasados o introducir nuevos riesgos en este dominio?", key="audit_q8")
+
+        st.subheader("2. Matriz de Clasificación de Riesgos")
+        st.markdown("""
+        Para cada patrón histórico identificado, estima:
+        - **Severidad**: Alto = impacta derechos/resultados de vida, Medio = afecta oportunidades/acceso a recursos, Bajo = impacto material limitado.
+        - **Probabilidad**: Alta = probable que aparezca en sistemas similares, Media = posible, Baja = raro.
+        - **Relevancia**: Alta = directamente relacionado con tu sistema, Media = afecta partes, Baja = periférico.
+        """)
+        matrix = st.text_area("Matriz de Clasificación de Riesgos (tabla Markdown)", height=200, placeholder="| Patrón | Severidad | Probabilidad | Relevancia | Puntuación (S×P×R) | Prioridad |\n|---|---|---|---|---|---|", key="audit_matrix")
+
+        if st.button("Guardar Resumen HCA"):
+            summary = {
+                "Cuestionario Estructurado": {
+                    "Dominio": q1, "Función": q2, "Patrones Históricos": q3, "Fuentes de Datos": q4,
+                    "Definiciones de Categoría": q5, "Riesgos de Medición": q6, "Sistemas Anteriores": q7, "Riesgos de Automatización": q8
+                },
+                "Matriz de Riesgos": matrix
+            }
+            summary_md = "# Resumen de Evaluación del Contexto Histórico\n"
+            for section, answers in summary.items():
+                summary_md += f"## {section}\n"
+                if isinstance(answers, dict):
+                    for k, v in answers.items():
+                        summary_md += f"**{k}:** {v}\n\n"
+                else:
+                    summary_md += f"{answers}\n"
+            
+            st.subheader("Vista Previa del Resumen HCA")
+            st.markdown(summary_md)
+            st.download_button("Descargar Resumen HCA", summary_md, "HCA_summary.md", "text/markdown")
+            st.success("Resumen de Evaluación del Contexto Histórico guardado.")
+
     elif page == "Selección de Definición de Equidad":
         st.header("Herramienta de Selección de Definición de Equidad")
-        # ... (Contenido original) ...
+        with st.expander("🔍 Definición Amigable"):
+            st.write("""
+            No existe una única "receta" para la equidad. Diferentes situaciones requieren diferentes tipos de justicia. Esta sección te ayuda a elegir la **definición de equidad** más adecuada para tu proyecto, como un médico que elige el tratamiento correcto para una enfermedad específica. Algunas definiciones buscan igualdad de resultados, otras igualdad de oportunidades, y la elección correcta depende de tu objetivo y del daño que intentas evitar.
+            """)
+        st.subheader("1. Catálogo de Definiciones de Equidad")
+        st.markdown("""
+        | Definición | Fórmula | Cuándo Usar | Ejemplo |
+        |---|---|---|---|
+        | Paridad Demográfica | P(Ŷ=1|A=a) = P(Ŷ=1|A=b) | Asegurar tasas de positivos iguales entre grupos. | Anuncios de universidad mostrados por igual a todos los géneros. |
+        | Igualdad de Oportunidades | P(Ŷ=1|Y=1,A=a) = P(Ŷ=1|Y=1,A=b) | Minimizar falsos negativos entre individuos calificados. | Sensibilidad de prueba médica igual entre razas. |
+        | Probabilidades Igualadas | P(Ŷ=1|Y=y,A=a) = P(Ŷ=1|Y=y,A=b) ∀ y | Equilibrar falsos positivos y negativos entre grupos. | Predicciones de reincidencia con tasas de error iguales. |
+        | Calibración | P(Y=1|ŝ=s,A=a) = s | Cuando las puntuaciones predichas se exponen a los usuarios. | Puntuaciones de crédito calibradas para diferentes demografías. |
+        | Equidad Contrafactual | Ŷ(x) = Ŷ(x') si A cambia | Requerir eliminación de sesgo causal relativo a rasgos sensibles. | Resultado sin cambios si solo cambia la raza en el perfil. |
+        """)
+        st.subheader("2. Árbol de Decisión para Selección")
+        exclusion = st.radio("¿El HCA reveló exclusión sistémica de grupos protegidos?", ("Sí", "No"), key="fds1")
+        error_harm = st.radio("¿Qué tipo de error es más dañino en tu contexto?", ("Falsos Negativos", "Falsos Positivos", "Ambos por igual"), key="fds2")
+        score_usage = st.checkbox("¿Se usarán las salidas como puntuaciones (ej. riesgo, ranking)?", key="fds3")
+        
+        st.subheader("Definiciones Recomendadas")
+        definitions = []
+        if exclusion == "Sí": definitions.append("Paridad Demográfica")
+        if error_harm == "Falsos Negativos": definitions.append("Igualdad de Oportunidades")
+        elif error_harm == "Falsos Positivos": definitions.append("Igualdad Predictiva")
+        elif error_harm == "Ambos por igual": definitions.append("Probabilidades Igualadas")
+        if score_usage: definitions.append("Calibración")
+        
+        for d in definitions: st.markdown(f"- **{d}**")
+    
     elif page == "Identificación de Fuentes de Sesgo":
         st.header("Herramienta de Identificación de Fuentes de Sesgo")
-        # ... (Contenido de esta sección) ...
+        st.write("Esta sección está en construcción.")
     elif page == "Métricas Comprensivas de Equidad":
         st.header("Métricas Comprensivas de Equidad (CFM)")
-        # ... (Contenido de esta sección) ...
+        st.write("Esta sección está en construcción.")
 
 
 # --- NAVEGACIÓN PRINCIPAL ---
