@@ -70,6 +70,94 @@ def run_threshold_simulation():
     else:
         st.warning(f"Ajusta los umbrales para igualar las Tasas de Verdaderos Positivos. Diferencia actual: {abs(tpr_a - tpr_b):.2%}")
 
+def run_matching_simulation():
+    st.markdown("#### Simulación de Emparejamiento (Matching)")
+    st.write("Compara dos grupos para estimar un efecto. El emparejamiento busca individuos 'similares' en ambos grupos para hacer una comparación más justa.")
+    np.random.seed(0)
+    # Grupo de Tratamiento
+    x_treat = np.random.normal(5, 1.5, 50)
+    y_treat = 2 * x_treat + 5 + np.random.normal(0, 2, 50)
+    # Grupo de Control
+    x_control = np.random.normal(3.5, 1.5, 50)
+    y_control = 2 * x_control + np.random.normal(0, 2, 50)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    ax1.scatter(x_treat, y_treat, c='red', label='Tratamiento', alpha=0.7)
+    ax1.scatter(x_control, y_control, c='blue', label='Control', alpha=0.7)
+    ax1.set_title("Antes del Emparejamiento")
+    ax1.set_xlabel("Característica (ej. Gasto previo)")
+    ax1.set_ylabel("Resultado (ej. Compras)")
+    ax1.legend()
+    ax1.grid(True, linestyle='--', alpha=0.5)
+
+    # Simular emparejamiento (encontrar puntos cercanos en X)
+    matched_indices = [np.argmin(np.abs(x_c - x_treat)) for x_c in x_control]
+    x_treat_matched = x_treat[matched_indices]
+    y_treat_matched = y_treat[matched_indices]
+
+    ax2.scatter(x_treat_matched, y_treat_matched, c='red', label='Tratamiento (Emparejado)', alpha=0.7)
+    ax2.scatter(x_control, y_control, c='blue', label='Control', alpha=0.7)
+    ax2.set_title("Después del Emparejamiento")
+    ax2.set_xlabel("Característica (ej. Gasto previo)")
+    ax2.legend()
+    ax2.grid(True, linestyle='--', alpha=0.5)
+    
+    st.pyplot(fig)
+    st.info("A la izquierda, los grupos no son directamente comparables. A la derecha, hemos seleccionado un subconjunto del grupo de tratamiento que es 'similar' al de control, permitiendo una estimación más justa del efecto del tratamiento.")
+
+def run_rd_simulation():
+    st.markdown("#### Simulación de Regresión por Discontinuidad (RD)")
+    st.write("La RD se usa cuando un tratamiento se asigna basado en un umbral (ej. una calificación mínima para una beca). Se compara a los individuos justo por encima y por debajo del umbral para estimar el efecto del tratamiento.")
+    np.random.seed(42)
+    cutoff = st.slider("Valor del Umbral (Cutoff)", 40, 60, 50)
+    
+    x = np.linspace(0, 100, 200)
+    y = 10 + 0.5 * x + np.random.normal(0, 5, 200)
+    # Efecto del tratamiento
+    treatment_effect = 15
+    y[x >= cutoff] += treatment_effect
+
+    fig, ax = plt.subplots()
+    ax.scatter(x[x < cutoff], y[x < cutoff], c='blue', label='Control (No recibió tratamiento)')
+    ax.scatter(x[x >= cutoff], y[x >= cutoff], c='red', label='Tratamiento')
+    ax.axvline(x=cutoff, color='gray', linestyle='--', label=f'Umbral en {cutoff}')
+    ax.set_title("Efecto del Tratamiento en el Umbral")
+    ax.set_xlabel("Variable de asignación (ej. Calificación de examen)")
+    ax.set_ylabel("Resultado (ej. Ingreso futuro)")
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig)
+    st.info(f"El 'salto' o discontinuidad en la línea de resultados en el punto del umbral ({cutoff}) es una estimación del efecto causal del tratamiento. Aquí, el efecto es de aproximadamente **{treatment_effect}** unidades.")
+
+def run_did_simulation():
+    st.markdown("#### Simulación de Diferencia en Diferencias (DiD)")
+    st.write("DiD compara el cambio en los resultados a lo largo del tiempo entre un grupo que recibe un tratamiento y uno que no. Asume que ambos grupos habrían seguido 'tendencias paralelas' sin el tratamiento.")
+    
+    time = ['Antes', 'Después']
+    # Grupo de Control: sin tratamiento
+    control_outcomes = [20, 25] 
+    # Grupo de Tratamiento: recibe tratamiento en el período 'Después'
+    treat_outcomes = [15, 28]
+
+    fig, ax = plt.subplots()
+    ax.plot(time, control_outcomes, 'bo-', label='Grupo de Control (Observado)')
+    ax.plot(time, treat_outcomes, 'ro-', label='Grupo de Tratamiento (Observado)')
+    
+    # Línea contrafactual: qué le habría pasado al grupo de tratamiento sin tratamiento
+    counterfactual = [treat_outcomes[0], treat_outcomes[0] + (control_outcomes[1] - control_outcomes[0])]
+    ax.plot(time, counterfactual, 'r--', label='Grupo de Tratamiento (Contrafactual)')
+    
+    ax.set_title("Estimación del Efecto del Tratamiento con DiD")
+    ax.set_ylabel("Resultado")
+    ax.set_ylim(10, 35)
+    ax.legend()
+    ax.grid(True, linestyle='--', alpha=0.5)
+    st.pyplot(fig)
+    
+    effect = treat_outcomes[1] - counterfactual[1]
+    st.info(f"La línea punteada muestra la 'tendencia paralela' que el grupo de tratamiento habría seguido sin la intervención. La diferencia vertical entre la línea roja sólida y la punteada en el período 'Después' es el efecto del tratamiento, estimado en **{effect}** unidades.")
+
+
 #======================================================================
 # --- FAIRNESS INTERVENTION PLAYBOOK ---
 #======================================================================
@@ -87,21 +175,27 @@ def causal_fairness_toolkit():
     with tab1:
         st.subheader("Marco de Identificación de Mecanismos de Discriminación")
         st.info("Identifica las posibles causas raíz del sesgo en tu aplicación.")
-        st.text_area("1. Discriminación Directa: ¿El atributo protegido influye directamente en la decisión?", placeholder="Ej: ¿Se utiliza explícitamente el 'género' como una característica en el modelo?", key="c1")
-        st.text_area("2. Discriminación Indirecta: ¿El atributo protegido afecta a factores intermedios legítimos?", placeholder="Ej: ¿El 'género' afecta a los 'años de experiencia' debido a pausas en la carrera?", key="c2")
-        st.text_area("3. Discriminación por Proxy: ¿Las decisiones dependen de variables correlacionadas con atributos protegidos?", placeholder="Ej: ¿El 'código postal' se correlaciona con la 'raza' y se utiliza para predecir el riesgo?", key="c3")
+        
+        with st.expander("Definición de Discriminación Directa"):
+            st.write("Ocurre cuando un atributo protegido (como la raza o el género) es usado explícitamente para tomar una decisión. Es el tipo de sesgo más obvio.")
+        st.text_area("1. ¿El atributo protegido influye directamente en la decisión?", placeholder="Ejemplo: Un modelo de contratación que asigna una puntuación menor a las candidatas mujeres de forma explícita.", key="c1")
+        
+        with st.expander("Definición de Discriminación Indirecta"):
+            st.write("Ocurre cuando un atributo protegido afecta a un factor intermedio que sí es legítimo para la decisión. El sesgo se transmite a través de esta variable mediadora.")
+        st.text_area("2. ¿El atributo protegido afecta a factores intermedios legítimos?", placeholder="Ejemplo: El género puede influir en tener 'pausas en la carrera' (para el cuidado de hijos), y el modelo penaliza estas pausas, afectando indirectamente a las mujeres.", key="c2")
+
+        with st.expander("Definición de Discriminación por Proxy"):
+            st.write("Ocurre cuando una variable aparentemente neutral está tan correlacionada con un atributo protegido que funciona como un sustituto (un 'proxy') de este.")
+        st.text_area("3. ¿Las decisiones dependen de variables correlacionadas con atributos protegidos?", placeholder="Ejemplo: En un modelo de crédito, usar el código postal como predictor puede ser un proxy de la raza debido a la segregación residencial histórica.", key="c3")
 
     with tab2:
         st.subheader("Metodología Práctica de Equidad Contrafactual")
         st.info("Analiza, cuantifica y mitiga el sesgo contrafactual en tu modelo.")
         with st.expander("💡 Ejemplo Interactivo: Simulación Contrafactual"):
             st.write("Observa cómo un cambio en un atributo protegido puede alterar la decisión de un modelo, revelando un sesgo causal.")
-            
-            # Simulación
             puntaje_base = 650
             decision_base = "Rechazado"
             st.write(f"**Caso Base:** Solicitante del **Grupo B** con un puntaje de **{puntaje_base}**. Decisión del modelo: **{decision_base}**.")
-
             if st.button("Ver Contrafactual (Cambiar a Grupo A)", key="cf_button"):
                 puntaje_cf = 710
                 decision_cf = "Aprobado"
@@ -110,21 +204,44 @@ def causal_fairness_toolkit():
         
         with st.container(border=True):
             st.markdown("##### Paso 1: Análisis de Equidad Contrafactual")
-            st.text_area("1.1 Formular Consultas Contrafactuales", placeholder="Ej: Para un solicitante rechazado, ¿cuál habría sido el resultado si su raza fuera diferente, manteniendo constantes los ingresos?", key="c4")
-            st.text_area("1.2 Identificar Rutas Causales (Justas vs. Injustas)", placeholder="Ej: La ruta Raza -> Código Postal -> Decisión es injusta.", key="c5")
-            st.text_area("1.3 Medir Disparidades y Documentar", placeholder="Ej: El 15% de los solicitantes del grupo desfavorecido habrían sido aprobados en el escenario contrafactual.", key="c6")
+            st.text_area("1.1 Formular Consultas Contrafactuales", placeholder="Ejemplo: Para un solicitante de préstamo rechazado, ¿cuál habría sido el resultado si su raza fuera diferente, manteniendo constantes los ingresos y el historial crediticio?", key="c4")
+            st.text_area("1.2 Identificar Rutas Causales (Justas vs. Injustas)", placeholder="Ejemplo: La ruta Raza → Código Postal → Decisión de Préstamo es injusta porque el código postal es un proxy. La ruta Nivel Educativo → Ingresos → Decisión de Préstamo es considerada justa.", key="c5")
+            st.text_area("1.3 Medir Disparidades y Documentar", placeholder="Ejemplo: El 15% de los solicitantes del grupo desfavorecido habrían sido aprobados en el escenario contrafactual. Esto indica una violación de equidad contrafactual.", key="c6")
         with st.container(border=True):
             st.markdown("##### Paso 2: Análisis Específico de Rutas")
-            st.text_area("2.1 Descomponer y Clasificar Rutas", placeholder="Ej: Ruta 1 (proxy de código postal) clasificada como INJUSTA.", key="c7")
-            st.text_area("2.2 Cuantificar Contribución y Documentar", placeholder="Ej: La ruta del código postal representa el 60% de la disparidad observada.", key="c8")
+            st.text_area("2.1 Descomponer y Clasificar Rutas", placeholder="Ejemplo: Ruta 1 (proxy de código postal) clasificada como INJUSTA. Ruta 2 (mediada por ingresos) clasificada como JUSTA.", key="c7")
+            st.text_area("2.2 Cuantificar Contribución y Documentar", placeholder="Ejemplo: La ruta del código postal representa el 60% de la disparidad observada. Razón: Refleja sesgos históricos de segregación residencial.", key="c8")
         with st.container(border=True):
             st.markdown("##### Paso 3: Diseño de Intervención")
             st.selectbox("3.1 Seleccionar Enfoque de Intervención", ["Nivel de Datos", "Nivel de Modelo", "Post-procesamiento"], key="c9")
-            st.text_area("3.2 Implementar y Monitorear", placeholder="Ej: Se aplicó una transformación a la característica de código postal. La disparidad se redujo en un 50%.", key="c10")
+            st.text_area("3.2 Implementar y Monitorear", placeholder="Ejemplo: Se aplicó una transformación a la característica de código postal. La disparidad contrafactual se redujo en un 50%.", key="c10")
 
     with tab3:
         st.subheader("Enfoque de Diagrama Causal Inicial")
         st.info("Esboza diagramas para visualizar las relaciones causales y documentar tus supuestos.")
+        with st.expander("💡 Simulador de Diagrama Causal"):
+            st.write("Construye un diagrama causal simple seleccionando las relaciones entre variables. Esto te ayuda a visualizar tus hipótesis sobre cómo funciona el sesgo.")
+            
+            nodos = ["Género", "Educación", "Ingresos", "Decisión_Préstamo"]
+            relaciones_posibles = [
+                ("Género", "Educación"), ("Género", "Ingresos"),
+                ("Educación", "Ingresos"), ("Ingresos", "Decisión_Préstamo"),
+                ("Educación", "Decisión_Préstamo"), ("Género", "Decisión_Préstamo")
+            ]
+            
+            relaciones_seleccionadas = st.multiselect(
+                "Selecciona las relaciones causales (Causa → Efecto):",
+                options=[f"{causa} → {efecto}" for causa, efecto in relaciones_posibles]
+            )
+            
+            if relaciones_seleccionadas:
+                dot_string = "digraph { rankdir=LR; "
+                for rel in relaciones_seleccionadas:
+                    causa, efecto = rel.split(" → ")
+                    dot_string += f'"{causa}" -> "{efecto}"; '
+                dot_string += "}"
+                st.graphviz_chart(dot_string)
+
         st.markdown("""
         **Convenciones de Anotación:**
         - **Nodos (variables):** Atributos Protegidos, Características, Resultados.
@@ -138,14 +255,39 @@ def causal_fairness_toolkit():
     with tab4:
         st.subheader("Inferencia Causal con Datos Limitados")
         st.info("Métodos prácticos para estimar efectos causales cuando los datos son imperfectos.")
-        st.markdown("""
-        **Métodos de Inferencia Observacional:**
-        - **Matching (Emparejamiento):** Compara individuos similares de diferentes grupos.
-        - **Variables Instrumentales (IV):** Usa una variable externa para aislar el efecto causal.
-        - **Regresión por Discontinuidad:** Aprovecha umbrales naturales en los datos.
-        - **Diferencia en Diferencias:** Compara cambios en el tiempo entre grupos.
-        """)
-        st.text_area("Análisis de Sensibilidad", placeholder="¿Qué tan fuerte tendría que ser una variable de confusión no medida para anular el efecto de sesgo que has encontrado?", key="c12")
+        
+        with st.expander("🔍 Definición: Emparejamiento (Matching)"):
+            st.write("Compara individuos de un grupo de 'tratamiento' con individuos muy similares de un grupo de 'control'. Al comparar 'gemelos' estadísticos, se aísla el efecto del tratamiento. En equidad, el 'tratamiento' puede ser pertenecer a un grupo demográfico.")
+        with st.expander("💡 Ejemplo Interactivo: Simulación de Emparejamiento"):
+            run_matching_simulation()
+
+        with st.expander("🔍 Definición: Variables Instrumentales (IV)"):
+            st.write("Usa una variable 'instrumento' que afecta al tratamiento, pero no directamente al resultado, para desenredar la correlación de la causalidad. Es como encontrar un interruptor que solo enciende una luz específica en un panel complicado, permitiéndote saber qué hace exactamente esa luz.")
+            st.graphviz_chart("""
+            digraph {
+                rankdir=LR;
+                Z [label="Instrumento (Z)"];
+                A [label="Atributo Protegido (A)"];
+                Y [label="Resultado (Y)"];
+                U [label="Factor de Confusión No Observado (U)", style=dashed];
+                Z -> A;
+                A -> Y;
+                U -> A [style=dashed];
+                U -> Y [style=dashed];
+            }
+            """)
+            st.write("**Ejemplo:** Para medir el efecto causal de la educación (A) en los ingresos (Y), se puede usar la proximidad a una universidad (Z) como instrumento. La proximidad afecta la educación, pero no directamente a los ingresos (excepto a través de la educación).")
+
+        with st.expander("🔍 Definición: Regresión por Discontinuidad (RD)"):
+            st.write("Aprovecha un umbral o punto de corte en la asignación de un tratamiento. Al comparar a quienes están justo por encima y por debajo del umbral, se puede estimar el efecto causal del tratamiento, asumiendo que estos individuos son muy similares en otros aspectos.")
+        with st.expander("💡 Ejemplo Interactivo: Simulación de RD"):
+            run_rd_simulation()
+
+        with st.expander("🔍 Definición: Diferencia en Diferencias (DiD)"):
+            st.write("Compara el cambio en los resultados a lo largo del tiempo entre un grupo de tratamiento y un grupo de control. La 'diferencia en diferencias' entre los grupos antes y después del tratamiento estima el efecto causal.")
+        with st.expander("💡 Ejemplo Interactivo: Simulación de DiD"):
+            run_did_simulation()
+
 
 def preprocessing_fairness_toolkit():
     st.header("🧪 Toolkit de Equidad en Pre-procesamiento")
