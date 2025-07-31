@@ -747,7 +747,7 @@ def audit_playbook():
         if score_usage: definitions.append("Calibración")
         
         for d in definitions: st.markdown(f"- **{d}**")
-
+    
     # (El resto de las secciones del Audit Playbook se pueden añadir aquí de manera similar)
     elif page == "Identificación de Fuentes de Sesgo":
         st.header("Herramienta de Identificación de Fuentes de Sesgo")
