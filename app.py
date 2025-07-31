@@ -351,25 +351,79 @@ def preprocessing_fairness_toolkit():
 
     with tab1:
         st.subheader("Análisis de Representación Multidimensional")
-        st.info("Examina las distribuciones demográficas para identificar brechas de representación.")
-        st.text_area("1. Comparación con Población de Referencia", placeholder="Ej: Nuestro conjunto de datos tiene un 20% de mujeres en roles técnicos, mientras que el mercado laboral es del 35%.", key="p1")
-        st.text_area("2. Análisis de Representación Interseccional", placeholder="Ej: Las mujeres de minorías raciales constituyen solo el 3% de los datos.", key="p2")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Esto significa verificar si todos los grupos demográficos están representados de manera justa en tus datos. No solo miramos los grupos principales (como hombres y mujeres), sino también las intersecciones (como mujeres de una etnia específica).")
+        
+        with st.expander("💡 Ejemplo Interactivo: Brecha de Representación"):
+            st.write("Compara la representación de dos grupos en tu conjunto de datos con su representación en una población de referencia (ej. el censo).")
+            pop_a = 50
+            pop_b = 50
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                data_a = st.slider("Porcentaje del Grupo A en tus datos", 0, 100, 70)
+            data_b = 100 - data_a
+            
+            df = pd.DataFrame({
+                'Grupo': ['Grupo A', 'Grupo B'],
+                'Población de Referencia': [pop_a, pop_b],
+                'Tus Datos': [data_a, data_b]
+            })
+
+            with col2:
+                st.write("Comparación:")
+                st.dataframe(df.set_index('Grupo'))
+
+            if abs(data_a - pop_a) > 10:
+                st.warning(f"Hay una brecha de representación significativa. El Grupo A está sobrerrepresentado en tus datos en {data_a - pop_a} puntos porcentuales.")
+            else:
+                st.success("La representación en tus datos es similar a la población de referencia.")
+
+        st.text_area("1. Comparación con Población de Referencia", placeholder="Ej: Nuestro conjunto de datos tiene un 70% del Grupo A y 30% del Grupo B, mientras que la población real es 50/50.", key="p1")
+        st.text_area("2. Análisis de Representación Interseccional", placeholder="Ej: Las mujeres de minorías raciales constituyen solo el 3% de los datos, aunque representan el 10% de la población.", key="p2")
         st.text_area("3. Representación a través de Categorías de Resultados", placeholder="Ej: El grupo A constituye el 30% de las solicitudes pero solo el 10% de las aprobadas.", key="p3")
 
     with tab2:
         st.subheader("Detección de Patrones de Correlación")
-        st.info("Identifica asociaciones problemáticas que podrían permitir la discriminación por proxy.")
-        st.text_area("1. Correlaciones Directas (Atributo Protegido ↔ Resultado)", placeholder="Ej: El género tiene una correlación de 0.3 con la decisión de contratación.", key="p4")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Buscamos variables aparentemente neutrales que estén fuertemente conectadas a atributos protegidos. Por ejemplo, si un código postal se correlaciona fuertemente con la raza, el modelo podría usar el código postal para discriminar indirectamente.")
+        
+        with st.expander("💡 Ejemplo Interactivo: Detección de Proxy"):
+            st.write("Visualiza cómo una variable 'Proxy' (ej. Código Postal) puede estar correlacionada tanto con un Atributo Protegido (ej. Grupo Demográfico) como con el Resultado (ej. Puntuación de Crédito).")
+            np.random.seed(1)
+            grupo = np.random.randint(0, 2, 100) # 0 o 1
+            proxy = grupo * 20 + np.random.normal(50, 5, 100)
+            resultado = proxy * 5 + np.random.normal(100, 20, 100)
+            
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+            ax1.scatter(grupo, proxy, c=grupo, cmap='coolwarm', alpha=0.7)
+            ax1.set_title("Atributo Protegido vs. Variable Proxy")
+            ax1.set_xlabel("Grupo Demográfico (0 o 1)")
+            ax1.set_ylabel("Valor del Proxy (ej. Código Postal)")
+            ax1.grid(True, linestyle='--', alpha=0.5)
+
+            ax2.scatter(proxy, resultado, c=grupo, cmap='coolwarm', alpha=0.7)
+            ax2.set_title("Variable Proxy vs. Resultado")
+            ax2.set_xlabel("Valor del Proxy (ej. Código Postal)")
+            ax2.set_ylabel("Resultado (ej. Puntuación de Crédito)")
+            ax2.grid(True, linestyle='--', alpha=0.5)
+            st.pyplot(fig)
+            st.info("El gráfico de la izquierda muestra que el proxy está correlacionado con el grupo. El de la derecha muestra que el proxy predice el resultado. Por lo tanto, el modelo puede usar el proxy para discriminar.")
+
+        st.text_area("1. Correlaciones Directas (Atributo Protegido ↔ Resultado)", placeholder="Ej: En los datos históricos, el género tiene una correlación de 0.3 con la decisión de contratación.", key="p4")
         st.text_area("2. Identificación de Variables Proxy (Atributo Protegido ↔ Característica)", placeholder="Ej: La característica 'asistencia a un club de ajedrez' está altamente correlacionada con el género masculino.", key="p5")
 
     with tab3:
         st.subheader("Evaluación de la Calidad de las Etiquetas")
-        st.info("Evalúa los sesgos potenciales en las etiquetas de entrenamiento.")
-        st.text_area("1. Sesgo Histórico en las Decisiones", placeholder="Ej: Las etiquetas de 'promocionado' provienen de un período con políticas de promoción sesgadas.", key="p6")
-        st.text_area("2. Sesgo del Anotador", placeholder="Ej: Los anotadores masculinos calificaron los mismos comentarios como 'tóxicos' con menos frecuencia que las anotadoras femeninas.", key="p7")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Las 'etiquetas' son las respuestas correctas en tus datos de entrenamiento (ej. 'fue contratado', 'no pagó el préstamo'). Si estas etiquetas provienen de decisiones humanas pasadas que fueron sesgadas, tu modelo aprenderá ese mismo sesgo.")
+        st.text_area("1. Sesgo Histórico en las Decisiones", placeholder="Ejemplo: Las etiquetas de 'promocionado' en nuestro conjunto de datos provienen de un período en el que la empresa tenía políticas de promoción sesgadas, por lo que las etiquetas en sí mismas son una fuente de sesgo.", key="p6")
+        st.text_area("2. Sesgo del Anotador", placeholder="Ejemplo: El análisis del acuerdo entre anotadores muestra que los anotadores masculinos calificaron los mismos comentarios como 'tóxicos' con menos frecuencia que las anotadoras femeninas, lo que indica un sesgo en la etiqueta.", key="p7")
     
     with tab4:
         st.subheader("Técnicas de Re-ponderación y Re-muestreo")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("**Re-ponderación:** Le da más 'peso' o importancia a las muestras de grupos subrepresentados. **Re-muestreo:** Cambia físicamente el conjunto de datos, ya sea duplicando muestras de grupos minoritarios (sobremuestreo) o eliminando muestras de grupos mayoritarios (submuestreo).")
         with st.expander("💡 Ejemplo Interactivo: Simulación de Sobremuestreo"):
             st.write("Observa cómo el sobremuestreo (resampling) puede equilibrar un conjunto de datos con representación desigual.")
             np.random.seed(0)
@@ -378,14 +432,12 @@ def preprocessing_fairness_toolkit():
             
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
             
-            # Gráfico Original
             ax1.scatter(data_a[:, 0], data_a[:, 1], c='blue', label='Grupo A (n=100)', alpha=0.6)
             ax1.scatter(data_b[:, 0], data_b[:, 1], c='red', label='Grupo B (n=20)', alpha=0.6)
             ax1.set_title("Datos Originales (Desequilibrados)")
             ax1.legend()
             ax1.grid(True, linestyle='--', alpha=0.5)
 
-            # Gráfico con Sobremuestreo
             oversample_indices = np.random.choice(range(20), 80, replace=True)
             data_b_oversampled = np.vstack([data_b, data_b[oversample_indices]])
             ax2.scatter(data_a[:, 0], data_a[:, 1], c='blue', label='Grupo A (n=100)', alpha=0.6)
@@ -396,25 +448,75 @@ def preprocessing_fairness_toolkit():
             
             st.pyplot(fig)
             st.info("El gráfico de la derecha muestra cómo se han añadido nuevas muestras (marcadas con 'x') del Grupo B para igualar en número al Grupo A, lo que ayuda al modelo a aprender mejor sus patrones.")
-        st.info("Aborda las disparidades de representación ajustando la influencia de las instancias de entrenamiento.")
-        st.markdown("**Re-ponderación:** Asigna pesos a las muestras para dar más importancia a los grupos subrepresentados.")
-        st.markdown("**Re-muestreo:** Modifica físicamente el conjunto de datos (sobre-muestreo o sub-muestreo).")
         st.text_area("Criterios de Decisión: ¿Re-ponderar o Re-muestrear?", placeholder="Basado en mi auditoría y mi modelo, la mejor estrategia es...", key="p8")
-        st.text_area("Consideración de Interseccionalidad", placeholder="Mi plan para la interseccionalidad es...", key="p9")
+        st.text_area("Consideración de Interseccionalidad", placeholder="Ejemplo: Para abordar la subrepresentación de mujeres de minorías, aplicaremos un sobremuestreo estratificado que garantice que este subgrupo específico alcance la paridad con otros.", key="p9")
 
     with tab5:
         st.subheader("Enfoques de Transformación de Distribución")
-        st.info("Modifica el espacio de características para mitigar el sesgo.")
-        st.text_area("1. Eliminación de Impacto Dispar", placeholder="Ej: 'Reparar' la característica 'código postal' para que su distribución sea la misma en todos los grupos raciales.", key="p10")
-        st.text_area("2. Representaciones Justas (LFR, LAFTR)", placeholder="Ej: Usar un autoencoder adversario para aprender una representación que no contenga información de género.", key="p11")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Esta técnica modifica directamente los valores de las características para romper las correlaciones problemáticas con los atributos protegidos. Es como 'recalibrar' una variable para que signifique lo mismo para todos los grupos.")
+        st.text_area("1. Eliminación de Impacto Dispar", placeholder="Ej: 'Reparar' la característica 'código postal' para que su distribución sea la misma en todos los grupos raciales, eliminando su uso como proxy.", key="p10")
+        st.text_area("2. Representaciones Justas (LFR, LAFTR)", placeholder="Ej: Usar un autoencoder adversario para aprender una representación de los perfiles de los solicitantes que no contenga información de género.", key="p11")
         st.text_area("3. Consideraciones de Interseccionalidad", placeholder="Mi estrategia de transformación se centrará en las intersecciones de género y etnia...", key="p12")
 
     with tab6:
         st.subheader("Generación de Datos con Conciencia de Equidad")
-        st.info("Crea datos sintéticos para mitigar patrones de sesgo.")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("Cuando los datos son muy escasos o sesgados, podemos generar datos sintéticos (artificiales) para llenar los vacíos. Esto es especialmente útil para crear ejemplos de grupos interseccionales muy pequeños o para generar escenarios contrafactuales.")
         st.markdown("**¿Cuándo Generar Datos?:** Cuando hay subrepresentación severa o se necesitan ejemplos contrafactuales.")
         st.markdown("**Estrategias:** Generación Condicional, Aumentación Contrafactual.")
-        st.text_area("Consideraciones de Interseccionalidad", placeholder="Mi modelo generativo será condicionado en la intersección de edad y género para...", key="p13")
+        st.text_area("Consideraciones de Interseccionalidad", placeholder="Ejemplo: Usaremos un modelo generativo condicionado en la intersección de edad y género para crear perfiles sintéticos de 'mujeres mayores en tecnología', un grupo ausente en nuestros datos.", key="p13")
+
+    # --- Sección de Reporte ---
+    st.markdown("---")
+    st.header("Generar Reporte del Toolkit de Pre-procesamiento")
+    if st.button("Generar Reporte de Pre-procesamiento", key="gen_preproc_report"):
+        report_data = {
+            "Análisis de Representación": {
+                "Comparación con Población de Referencia": st.session_state.p1,
+                "Análisis Interseccional": st.session_state.p2,
+                "Representación en Resultados": st.session_state.p3,
+            },
+            "Detección de Correlación": {
+                "Correlaciones Directas": st.session_state.p4,
+                "Variables Proxy Identificadas": st.session_state.p5,
+            },
+            "Calidad de Etiquetas": {
+                "Sesgo Histórico en Etiquetas": st.session_state.p6,
+                "Sesgo del Anotador": st.session_state.p7,
+            },
+            "Re-ponderación y Re-muestreo": {
+                "Decisión y Razón": st.session_state.p8,
+                "Plan Interseccional": st.session_state.p9,
+            },
+            "Transformación de Distribución": {
+                "Plan de Eliminación de Impacto Dispar": st.session_state.p10,
+                "Plan de Representaciones Justas": st.session_state.p11,
+                "Plan Interseccional": st.session_state.p12,
+            },
+            "Generación de Datos": {
+                "Plan de Generación Interseccional": st.session_state.p13,
+            }
+        }
+        
+        report_md = "# Reporte del Toolkit de Equidad en Pre-procesamiento\n\n"
+        for section, content in report_data.items():
+            report_md += f"## {section}\n"
+            for key, value in content.items():
+                report_md += f"**{key}:**\n{value}\n\n"
+        
+        st.session_state.preproc_report_md = report_md
+        st.success("¡Reporte generado exitosamente!")
+
+    if 'preproc_report_md' in st.session_state and st.session_state.preproc_report_md:
+        st.subheader("Vista Previa del Reporte")
+        st.markdown(st.session_state.preproc_report_md)
+        st.download_button(
+            label="Descargar Reporte de Pre-procesamiento",
+            data=st.session_state.preproc_report_md,
+            file_name="reporte_preprocesamiento.md",
+            mime="text/markdown"
+        )
 
 def inprocessing_fairness_toolkit():
     st.header("⚙️ Toolkit de Equidad en In-procesamiento")
