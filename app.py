@@ -170,6 +170,10 @@ def causal_fairness_toolkit():
         El **Análisis Causal** va más allá de las correlaciones para entender el *porqué* de las disparidades. Es como ser un detective que no solo ve que dos eventos ocurren juntos, sino que reconstruye la cadena de causa y efecto que los conecta. Esto nos ayuda a aplicar soluciones que atacan la raíz del problema, en lugar de solo maquillar los síntomas.
         """)
     
+    # Inicializar session_state para el reporte
+    if 'causal_report' not in st.session_state:
+        st.session_state.causal_report = {}
+
     tab1, tab2, tab3, tab4 = st.tabs(["Identificación", "Análisis Contrafactual", "Diagrama Causal", "Inferencia Causal"])
 
     with tab1:
@@ -178,15 +182,15 @@ def causal_fairness_toolkit():
         
         with st.expander("Definición de Discriminación Directa"):
             st.write("Ocurre cuando un atributo protegido (como la raza o el género) es usado explícitamente para tomar una decisión. Es el tipo de sesgo más obvio.")
-        st.text_area("1. ¿El atributo protegido influye directamente en la decisión?", placeholder="Ejemplo: Un modelo de contratación que asigna una puntuación menor a las candidatas mujeres de forma explícita.", key="c1")
+        st.text_area("1. ¿El atributo protegido influye directamente en la decisión?", placeholder="Ejemplo: Un modelo de contratación que asigna una puntuación menor a las candidatas mujeres de forma explícita.", key="causal_q1")
         
         with st.expander("Definición de Discriminación Indirecta"):
             st.write("Ocurre cuando un atributo protegido afecta a un factor intermedio que sí es legítimo para la decisión. El sesgo se transmite a través de esta variable mediadora.")
-        st.text_area("2. ¿El atributo protegido afecta a factores intermedios legítimos?", placeholder="Ejemplo: El género puede influir en tener 'pausas en la carrera' (para el cuidado de hijos), y el modelo penaliza estas pausas, afectando indirectamente a las mujeres.", key="c2")
+        st.text_area("2. ¿El atributo protegido afecta a factores intermedios legítimos?", placeholder="Ejemplo: El género puede influir en tener 'pausas en la carrera' (para el cuidado de hijos), y el modelo penaliza estas pausas, afectando indirectamente a las mujeres.", key="causal_q2")
 
         with st.expander("Definición de Discriminación por Proxy"):
             st.write("Ocurre cuando una variable aparentemente neutral está tan correlacionada con un atributo protegido que funciona como un sustituto (un 'proxy') de este.")
-        st.text_area("3. ¿Las decisiones dependen de variables correlacionadas con atributos protegidos?", placeholder="Ejemplo: En un modelo de crédito, usar el código postal como predictor puede ser un proxy de la raza debido a la segregación residencial histórica.", key="c3")
+        st.text_area("3. ¿Las decisiones dependen de variables correlacionadas con atributos protegidos?", placeholder="Ejemplo: En un modelo de crédito, usar el código postal como predictor puede ser un proxy de la raza debido a la segregación residencial histórica.", key="causal_q3")
 
     with tab2:
         st.subheader("Metodología Práctica de Equidad Contrafactual")
@@ -204,17 +208,17 @@ def causal_fairness_toolkit():
         
         with st.container(border=True):
             st.markdown("##### Paso 1: Análisis de Equidad Contrafactual")
-            st.text_area("1.1 Formular Consultas Contrafactuales", placeholder="Ejemplo: Para un solicitante de préstamo rechazado, ¿cuál habría sido el resultado si su raza fuera diferente, manteniendo constantes los ingresos y el historial crediticio?", key="c4")
-            st.text_area("1.2 Identificar Rutas Causales (Justas vs. Injustas)", placeholder="Ejemplo: La ruta Raza → Código Postal → Decisión de Préstamo es injusta porque el código postal es un proxy. La ruta Nivel Educativo → Ingresos → Decisión de Préstamo es considerada justa.", key="c5")
-            st.text_area("1.3 Medir Disparidades y Documentar", placeholder="Ejemplo: El 15% de los solicitantes del grupo desfavorecido habrían sido aprobados en el escenario contrafactual. Esto indica una violación de equidad contrafactual.", key="c6")
+            st.text_area("1.1 Formular Consultas Contrafactuales", placeholder="Ejemplo: Para un solicitante de préstamo rechazado, ¿cuál habría sido el resultado si su raza fuera diferente, manteniendo constantes los ingresos y el historial crediticio?", key="causal_q4")
+            st.text_area("1.2 Identificar Rutas Causales (Justas vs. Injustas)", placeholder="Ejemplo: La ruta Raza → Código Postal → Decisión de Préstamo es injusta porque el código postal es un proxy. La ruta Nivel Educativo → Ingresos → Decisión de Préstamo es considerada justa.", key="causal_q5")
+            st.text_area("1.3 Medir Disparidades y Documentar", placeholder="Ejemplo: El 15% de los solicitantes del grupo desfavorecido habrían sido aprobados en el escenario contrafactual. Esto indica una violación de equidad contrafactual.", key="causal_q6")
         with st.container(border=True):
             st.markdown("##### Paso 2: Análisis Específico de Rutas")
-            st.text_area("2.1 Descomponer y Clasificar Rutas", placeholder="Ejemplo: Ruta 1 (proxy de código postal) clasificada como INJUSTA. Ruta 2 (mediada por ingresos) clasificada como JUSTA.", key="c7")
-            st.text_area("2.2 Cuantificar Contribución y Documentar", placeholder="Ejemplo: La ruta del código postal representa el 60% de la disparidad observada. Razón: Refleja sesgos históricos de segregación residencial.", key="c8")
+            st.text_area("2.1 Descomponer y Clasificar Rutas", placeholder="Ejemplo: Ruta 1 (proxy de código postal) clasificada como INJUSTA. Ruta 2 (mediada por ingresos) clasificada como JUSTA.", key="causal_q7")
+            st.text_area("2.2 Cuantificar Contribución y Documentar", placeholder="Ejemplo: La ruta del código postal representa el 60% de la disparidad observada. Razón: Refleja sesgos históricos de segregación residencial.", key="causal_q8")
         with st.container(border=True):
             st.markdown("##### Paso 3: Diseño de Intervención")
-            st.selectbox("3.1 Seleccionar Enfoque de Intervención", ["Nivel de Datos", "Nivel de Modelo", "Post-procesamiento"], key="c9")
-            st.text_area("3.2 Implementar y Monitorear", placeholder="Ejemplo: Se aplicó una transformación a la característica de código postal. La disparidad contrafactual se redujo en un 50%.", key="c10")
+            st.selectbox("3.1 Seleccionar Enfoque de Intervención", ["Nivel de Datos", "Nivel de Modelo", "Post-procesamiento"], key="causal_q9")
+            st.text_area("3.2 Implementar y Monitorear", placeholder="Ejemplo: Se aplicó una transformación a la característica de código postal. La disparidad contrafactual se redujo en un 50%.", key="causal_q10")
 
     with tab3:
         st.subheader("Enfoque de Diagrama Causal Inicial")
@@ -229,14 +233,15 @@ def causal_fairness_toolkit():
                 ("Educación", "Decisión_Préstamo"), ("Género", "Decisión_Préstamo")
             ]
             
-            relaciones_seleccionadas = st.multiselect(
+            st.multiselect(
                 "Selecciona las relaciones causales (Causa → Efecto):",
-                options=[f"{causa} → {efecto}" for causa, efecto in relaciones_posibles]
+                options=[f"{causa} → {efecto}" for causa, efecto in relaciones_posibles],
+                key="causal_q11_relations"
             )
             
-            if relaciones_seleccionadas:
+            if st.session_state.causal_q11_relations:
                 dot_string = "digraph { rankdir=LR; "
-                for rel in relaciones_seleccionadas:
+                for rel in st.session_state.causal_q11_relations:
                     causa, efecto = rel.split(" → ")
                     dot_string += f'"{causa}" -> "{efecto}"; '
                 dot_string += "}"
@@ -250,7 +255,7 @@ def causal_fairness_toolkit():
         - **Incertidumbre (?):** Relación causal hipotética o débil.
         - **Ruta Problemática (!):** Ruta que consideras una fuente de inequidad.
         """)
-        st.text_area("Documentación de Supuestos y Rutas", placeholder="Ruta (!): Raza -> Nivel de Ingresos -> Decisión.\nSupuesto: Las disparidades históricas de ingresos vinculadas a la raza afectan la capacidad de préstamo.", height=200, key="c11")
+        st.text_area("Documentación de Supuestos y Rutas", placeholder="Ruta (!): Raza -> Nivel de Ingresos -> Decisión.\nSupuesto: Las disparidades históricas de ingresos vinculadas a la raza afectan la capacidad de préstamo.", height=200, key="causal_q11")
 
     with tab4:
         st.subheader("Inferencia Causal con Datos Limitados")
@@ -287,6 +292,52 @@ def causal_fairness_toolkit():
             st.write("Compara el cambio en los resultados a lo largo del tiempo entre un grupo de tratamiento y un grupo de control. La 'diferencia en diferencias' entre los grupos antes y después del tratamiento estima el efecto causal.")
         with st.expander("💡 Ejemplo Interactivo: Simulación de DiD"):
             run_did_simulation()
+
+    # --- Sección de Reporte ---
+    st.markdown("---")
+    st.header("Generar Reporte del Toolkit Causal")
+    if st.button("Generar Reporte Causal", key="gen_causal_report"):
+        # Recopilar datos del session_state
+        report_data = {
+            "Identificación de Mecanismos": {
+                "Discriminación Directa": st.session_state.get('causal_q1', 'No completado'),
+                "Discriminación Indirecta": st.session_state.get('causal_q2', 'No completado'),
+                "Discriminación por Proxy": st.session_state.get('causal_q3', 'No completado'),
+            },
+            "Análisis Contrafactual": {
+                "Consultas Contrafactuales": st.session_state.get('causal_q4', 'No completado'),
+                "Identificación de Rutas Causales": st.session_state.get('causal_q5', 'No completado'),
+                "Medición de Disparidades": st.session_state.get('causal_q6', 'No completado'),
+                "Descomposición de Rutas": st.session_state.get('causal_q7', 'No completado'),
+                "Cuantificación de Contribución": st.session_state.get('causal_q8', 'No completado'),
+                "Enfoque de Intervención Seleccionado": st.session_state.get('causal_q9', 'No completado'),
+                "Plan de Implementación y Monitoreo": st.session_state.get('causal_q10', 'No completado'),
+            },
+            "Diagrama Causal": {
+                "Relaciones Seleccionadas": ", ".join(st.session_state.get('causal_q11_relations', [])),
+                "Documentación de Supuestos": st.session_state.get('causal_q11', 'No completado'),
+            }
+        }
+
+        # Formatear reporte en Markdown
+        report_md = "# Reporte del Toolkit de Equidad Causal\n\n"
+        for section, content in report_data.items():
+            report_md += f"## {section}\n"
+            for key, value in content.items():
+                report_md += f"**{key}:**\n{value}\n\n"
+        
+        st.session_state.causal_report_md = report_md
+        st.success("¡Reporte generado exitosamente! Puedes verlo a continuación y descargarlo.")
+
+    if 'causal_report_md' in st.session_state and st.session_state.causal_report_md:
+        st.subheader("Vista Previa del Reporte")
+        st.markdown(st.session_state.causal_report_md)
+        st.download_button(
+            label="Descargar Reporte Causal",
+            data=st.session_state.causal_report_md,
+            file_name="reporte_equidad_causal.md",
+            mime="text/markdown"
+        )
 
 
 def preprocessing_fairness_toolkit():
