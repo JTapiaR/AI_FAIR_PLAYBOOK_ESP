@@ -31,7 +31,7 @@ def run_threshold_simulation():
 
     df_a = pd.DataFrame({'Puntuación': np.concatenate([scores_a_pos, scores_a_neg]), 'Real': [1]*80 + [0]*120})
     df_b = pd.DataFrame({'Puntuación': np.concatenate([scores_b_pos, scores_b_neg]), 'Real': [1]*50 + [0]*150})
-    
+
     col1, col2 = st.columns(2)
     with col1:
         threshold_a = st.slider("Umbral para Grupo A", 0.0, 1.0, 0.5, key="sim_thresh_a")
@@ -60,12 +60,12 @@ def run_threshold_simulation():
 def run_calibration_simulation():
     st.markdown("#### Simulación de Calibración")
     st.write("Observa cómo las puntuaciones brutas de un modelo (línea azul) pueden estar mal calibradas y cómo técnicas como **Platt Scaling** (logística) o **Regresión Isotónica** las ajustan para que se alineen mejor con la realidad (línea diagonal perfecta).")
-    
+
     np.random.seed(0)
     # Generar puntuaciones de modelo mal calibradas
     raw_scores = np.sort(np.random.rand(100))
     true_probs = 1 / (1 + np.exp(-(raw_scores * 4 - 2))) # Una curva sigmoide para simular la realidad
-    
+
     # Platt Scaling
     platt = LogisticRegression()
     platt.fit(raw_scores.reshape(-1, 1), (true_probs > 0.5).astype(int))
@@ -88,6 +88,7 @@ def run_calibration_simulation():
     ax.grid(True, linestyle='--', alpha=0.5)
     st.pyplot(fig)
     st.info("El objetivo es que las líneas de las puntuaciones se acerquen lo más posible a la línea diagonal punteada, que representa una calibración perfecta.")
+
 
 def run_rejection_simulation():
     st.markdown("#### Simulación de Clasificación con Rechazo")
@@ -112,11 +113,11 @@ def run_rejection_simulation():
     ax.set_ylabel("Frecuencia")
     ax.legend()
     st.pyplot(fig)
-    
+
     coverage = (len(automated_low) + len(automated_high)) / len(scores)
     st.metric("Tasa de Cobertura (Automatización)", f"{coverage:.1%}")
     st.info("Ajusta los umbrales para ver cómo cambia la cantidad de casos que se automatizan vs. los que requieren revisión humana. Un rango de rechazo más amplio aumenta la equidad en casos difíciles a costa de una menor automatización.")
-    
+
 def run_matching_simulation():
     st.markdown("#### Simulación de Emparejamiento (Matching)")
     st.write("Compara dos grupos para estimar un efecto. El emparejamiento busca individuos 'similares' en ambos grupos para hacer una comparación más justa.")
@@ -145,16 +146,18 @@ def run_matching_simulation():
     ax2.set_xlabel("Característica (ej. Gasto previo)")
     ax2.legend()
     ax2.grid(True, linestyle='--', alpha=0.5)
-    
+
     st.pyplot(fig)
     st.info("A la izquierda, los grupos no son directamente comparables. A la derecha, hemos seleccionado un subconjunto del grupo de tratamiento que es 'similar' al de control, permitiendo una estimación más justa del efecto del tratamiento.")
+
+
 
 def run_rd_simulation():
     st.markdown("#### Simulación de Regresión por Discontinuidad (RD)")
     st.write("La RD se usa cuando un tratamiento se asigna basado en un umbral (ej. una calificación mínima para una beca). Se compara a los individuos justo por encima y por debajo del umbral para estimar el efecto del tratamiento.")
     np.random.seed(42)
     cutoff = st.slider("Valor del Umbral (Cutoff)", 40, 60, 50, key="rd_cutoff")
-    
+
     x = np.linspace(0, 100, 200)
     y = 10 + 0.5 * x + np.random.normal(0, 5, 200)
     treatment_effect = 15
@@ -175,7 +178,7 @@ def run_rd_simulation():
 def run_did_simulation():
     st.markdown("#### Simulación de Diferencia en Diferencias (DiD)")
     st.write("DiD compara el cambio en los resultados a lo largo del tiempo entre un grupo que recibe un tratamiento y uno que no. Asume que ambos grupos habrían seguido 'tendencias paralelas' sin el tratamiento.")
-    
+
     time = ['Antes', 'Después']
     control_outcomes = [20, 25] 
     treat_outcomes = [15, 28]
@@ -183,17 +186,17 @@ def run_did_simulation():
     fig, ax = plt.subplots()
     ax.plot(time, control_outcomes, 'bo-', label='Grupo de Control (Observado)')
     ax.plot(time, treat_outcomes, 'ro-', label='Grupo de Tratamiento (Observado)')
-    
+
     counterfactual = [treat_outcomes[0], treat_outcomes[0] + (control_outcomes[1] - control_outcomes[0])]
     ax.plot(time, counterfactual, 'r--', label='Grupo de Tratamiento (Contrafactual)')
-    
+
     ax.set_title("Estimación del Efecto del Tratamiento con DiD")
     ax.set_ylabel("Resultado")
     ax.set_ylim(10, 35)
     ax.legend()
     ax.grid(True, linestyle='--', alpha=0.5)
     st.pyplot(fig)
-    
+
     effect = treat_outcomes[1] - counterfactual[1]
     st.info(f"La línea punteada muestra la 'tendencia paralela' que el grupo de tratamiento habría seguido sin la intervención. La diferencia vertical entre la línea roja sólida y la punteada en el período 'Después' es el efecto del tratamiento, estimado en **{effect}** unidades.")
 #======================================================================
@@ -423,8 +426,12 @@ def preprocessing_fairness_toolkit():
         st.write("""
         El **Pre-procesamiento** consiste en "limpiar" los datos *antes* de que el modelo aprenda de ellos. Es como preparar los ingredientes para una receta: si sabes que algunos ingredientes están sesgados (por ejemplo, demasiado salados), los ajustas antes de cocinar para asegurar que el plato final sea equilibrado.
         """)
-    
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Análisis de Representación", "Detección de Correlación", "Calidad de Etiquetas", "Re-ponderación y Re-muestreo", "Transformación", "Generación de Datos"])
+
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "Análisis de Representación", "Detección de Correlación", "Calidad de Etiquetas", 
+        "Re-ponderación y Re-muestreo", "Transformación", "Generación de Datos", 
+        "🌍 Interseccionalidad"
+    ])
 
     with tab1:
         st.subheader("Análisis de Representación Multidimensional")
@@ -544,35 +551,94 @@ def preprocessing_fairness_toolkit():
         st.markdown("**Estrategias:** Generación Condicional, Aumentación Contrafactual.")
         st.text_area("Consideraciones de Interseccionalidad", placeholder="Ejemplo: Usaremos un modelo generativo condicionado en la intersección de edad y género para crear perfiles sintéticos de 'mujeres mayores en tecnología', un grupo ausente en nuestros datos.", key="p13")
 
+    with tab7:
+        st.subheader("Interseccionalidad en el Pre-procesamiento")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("""
+            La interseccionalidad aquí significa ir más allá de equilibrar los datos para grupos principales (ej. hombres vs. mujeres). Debemos asegurarnos de que los **subgrupos específicos** (ej. mujeres negras, hombres latinos jóvenes) también estén bien representados. Las técnicas de pre-procesamiento deben aplicarse de forma estratificada para corregir desequilibrios en estas intersecciones, que a menudo son las más vulnerables al sesgo.
+            """)
+        
+        with st.expander("💡 Ejemplo Interactivo: Re-muestreo Estratificado Interseccional"):
+            st.write("Observa cómo un conjunto de datos puede parecer equilibrado en un eje (Grupo A vs. B), pero no en sus intersecciones. El re-muestreo estratificado soluciona esto.")
+
+            # Datos iniciales
+            np.random.seed(1)
+            # Grupo A: 100 total (80 Hombres, 20 Mujeres)
+            hombres_a = pd.DataFrame({'Característica 1': np.random.normal(2, 1, 80), 'Característica 2': np.random.normal(5, 1, 80), 'Grupo': 'Hombres A'})
+            mujeres_a = pd.DataFrame({'Característica 1': np.random.normal(2.5, 1, 20), 'Característica 2': np.random.normal(5.5, 1, 20), 'Grupo': 'Mujeres A'})
+            # Grupo B: 100 total (50 Hombres, 50 Mujeres)
+            hombres_b = pd.DataFrame({'Característica 1': np.random.normal(6, 1, 50), 'Característica 2': np.random.normal(2, 1, 50), 'Grupo': 'Hombres B'})
+            mujeres_b = pd.DataFrame({'Característica 1': np.random.normal(6.5, 1, 50), 'Característica 2': np.random.normal(2.5, 1, 50), 'Grupo': 'Mujeres B'})
+            
+            # Subgrupo interseccional pequeño
+            mujeres_b_interseccional = pd.DataFrame({'Característica 1': np.random.normal(7, 1, 10), 'Característica 2': np.random.normal(3, 1, 10), 'Grupo': 'Mujeres B (Intersección)'})
+
+
+            df_original = pd.concat([hombres_a, mujeres_a, hombres_b, mujeres_b, mujeres_b_interseccional])
+            
+            # Aplicar sobremuestreo
+            remuestreo_factor = st.slider("Factor de sobremuestreo para 'Mujeres B (Intersección)'", 1, 10, 5, key="inter_remuestreo")
+            
+            if remuestreo_factor > 1:
+                indices_remuestreo = mujeres_b_interseccional.sample(n=(remuestreo_factor-1)*len(mujeres_b_interseccional), replace=True).index
+                df_remuestreado = pd.concat([df_original, mujeres_b_interseccional.loc[indices_remuestreo]])
+            else:
+                df_remuestreado = df_original
+
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6), sharex=True, sharey=True)
+
+            # Gráfico Original
+            for name, group in df_original.groupby('Grupo'):
+                ax1.scatter(group['Característica 1'], group['Característica 2'], label=f"{name} (n={len(group)})", alpha=0.7)
+            ax1.set_title("Datos Originales")
+            ax1.legend()
+            ax1.grid(True, linestyle='--', alpha=0.6)
+
+            # Gráfico Remuestreado
+            for name, group in df_remuestreado.groupby('Grupo'):
+                 ax2.scatter(group['Característica 1'], group['Característica 2'], label=f"{name} (n={len(group)})", alpha=0.7)
+            ax2.set_title("Datos con Sobremuestreo Interseccional")
+            ax2.legend()
+            ax2.grid(True, linestyle='--', alpha=0.6)
+
+            st.pyplot(fig)
+            st.info("El grupo 'Mujeres B (Intersección)' estaba severamente subrepresentado. Al aplicar un sobremuestreo específico para este subgrupo, ayudamos al modelo a aprender sus patrones sin distorsionar el resto de los datos.")
+        
+        st.text_area("Aplica a tu caso: ¿Qué subgrupos interseccionales están subrepresentados en tus datos y qué estrategia de re-muestreo/re-ponderación estratificada podrías usar?", key="p_inter")
+
+
     # --- Sección de Reporte ---
     st.markdown("---")
     st.header("Generar Reporte del Toolkit de Pre-procesamiento")
     if st.button("Generar Reporte de Pre-procesamiento", key="gen_preproc_report"):
         report_data = {
             "Análisis de Representación": {
-                "Comparación con Población de Referencia": st.session_state.p1,
-                "Análisis Interseccional": st.session_state.p2,
-                "Representación en Resultados": st.session_state.p3,
+                "Comparación con Población de Referencia": st.session_state.get('p1', 'No completado'),
+                "Análisis Interseccional": st.session_state.get('p2', 'No completado'),
+                "Representación en Resultados": st.session_state.get('p3', 'No completado'),
             },
             "Detección de Correlación": {
-                "Correlaciones Directas": st.session_state.p4,
-                "Variables Proxy Identificadas": st.session_state.p5,
+                "Correlaciones Directas": st.session_state.get('p4', 'No completado'),
+                "Variables Proxy Identificadas": st.session_state.get('p5', 'No completado'),
             },
             "Calidad de Etiquetas": {
-                "Sesgo Histórico en Etiquetas": st.session_state.p6,
-                "Sesgo del Anotador": st.session_state.p7,
+                "Sesgo Histórico en Etiquetas": st.session_state.get('p6', 'No completado'),
+                "Sesgo del Anotador": st.session_state.get('p7', 'No completado'),
             },
             "Re-ponderación y Re-muestreo": {
-                "Decisión y Razón": st.session_state.p8,
-                "Plan Interseccional": st.session_state.p9,
+                "Decisión y Razón": st.session_state.get('p8', 'No completado'),
+                "Plan Interseccional": st.session_state.get('p9', 'No completado'),
             },
             "Transformación de Distribución": {
-                "Plan de Eliminación de Impacto Dispar": st.session_state.p10,
-                "Plan de Representaciones Justas": st.session_state.p11,
-                "Plan Interseccional": st.session_state.p12,
+                "Plan de Eliminación de Impacto Dispar": st.session_state.get('p10', 'No completado'),
+                "Plan de Representaciones Justas": st.session_state.get('p11', 'No completado'),
+                "Plan Interseccional": st.session_state.get('p12', 'No completado'),
             },
             "Generación de Datos": {
-                "Plan de Generación Interseccional": st.session_state.p13,
+                "Plan de Generación Interseccional": st.session_state.get('p13', 'No completado'),
+            },
+            "Estrategia Interseccional de Pre-procesamiento": {
+                 "Análisis y Estrategia": st.session_state.get('p_inter', 'No completado'),
             }
         }
         
@@ -594,6 +660,7 @@ def preprocessing_fairness_toolkit():
             file_name="reporte_preprocesamiento.md",
             mime="text/markdown"
         )
+       
 
 def inprocessing_fairness_toolkit():
     st.header("⚙️ Toolkit de Equidad en In-procesamiento")
@@ -601,9 +668,13 @@ def inprocessing_fairness_toolkit():
         st.write("""
         El **In-procesamiento** implica modificar el algoritmo de aprendizaje del modelo para que la equidad sea uno de sus objetivos, junto con la precisión. Es como enseñarle a un chef a cocinar no solo para que la comida sea deliciosa, sino también para que sea nutricionalmente equilibrada, haciendo de la nutrición una parte central de la receta.
         """)
-    
-    tab1, tab2, tab3, tab4 = st.tabs(["Objetivos y Restricciones", "Debiasing Adversario", "Optimización Multiobjetivo", "Patrones de Código"])
 
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "Objetivos y Restricciones", "Debiasing Adversario", 
+        "Optimización Multiobjetivo", "Patrones de Código",
+        "🌍 Interseccionalidad"
+    ])
+    
     with tab1:
         st.subheader("Objetivos y Restricciones de Equidad")
         with st.expander("🔍 Definición Amigable"):
@@ -676,13 +747,68 @@ def inprocessing_fairness_toolkit():
         st.code("""
 # Ejemplo de una función de pérdida con regularización de equidad
 def fairness_regularized_loss(original_loss, predictions, protected_attribute):
-  # Calcula una penalización basada en la disparidad de las predicciones
-  fairness_penalty = calculate_disparity(predictions, protected_attribute)
-  
-  # Combina la pérdida original con la penalización de equidad
-  # lambda controla la importancia que se le da a la equidad
-  return original_loss + lambda * fairness_penalty
+    # Calcula una penalización basada en la disparidad de las predicciones
+    fairness_penalty = calculate_disparity(predictions, protected_attribute)
+    
+    # Combina la pérdida original con la penalización de equidad
+    # lambda controla la importancia que se le da a la equidad
+    return original_loss + lambda * fairness_penalty
         """, language="python")
+
+    with tab5:
+        st.subheader("Interseccionalidad en el In-procesamiento")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("""
+            La equidad interseccional en esta etapa significa que las "reglas de equidad" que añadimos al modelo deben proteger no solo a los grupos principales, sino también a las intersecciones. Un modelo puede ser justo para "mujeres" y para "personas de minorías" en general, pero ser muy injusto para las "mujeres de minorías". Las técnicas de in-procesamiento deben ser capaces de manejar múltiples restricciones de equidad para estos subgrupos específicos.
+            """)
+
+        with st.expander("💡 Ejemplo Interactivo: Restricciones para Subgrupos"):
+            st.write("Observa cómo añadir una restricción específica para un subgrupo interseccional puede mejorar su equidad, a veces a costa de la precisión general.")
+            
+            np.random.seed(42)
+            # Simulación simple de datos
+            # Grupo Mayoritario (Hombres A)
+            X_maj = np.random.normal(1, 1, (100, 2))
+            y_maj = (X_maj[:, 0] > 1).astype(int)
+            # Grupo Minoritario 1 (Mujeres A)
+            X_min1 = np.random.normal(-1, 1, (50, 2))
+            y_min1 = (X_min1[:, 0] > -1).astype(int)
+            # Grupo Minoritario 2 (Hombres B)
+            X_min2 = np.random.normal(0, 1, (50, 2))
+            y_min2 = (X_min2[:, 0] > 0).astype(int)
+            # Subgrupo Interseccional (Mujeres B)
+            X_inter = np.random.normal(-2, 1, (20, 2))
+            y_inter = (X_inter[:, 0] > -2).astype(int)
+
+            X_total = np.vstack([X_maj, X_min1, X_min2, X_inter])
+            y_total = np.concatenate([y_maj, y_min1, y_min2, y_inter])
+            
+            # Modelo sin restricciones
+            model_base = LogisticRegression(solver='liblinear').fit(X_total, y_total)
+            acc_base = model_base.score(X_total, y_total)
+            acc_inter_base = model_base.score(X_inter, y_inter)
+
+            # Modelo CON restricción (simulado)
+            lambda_inter = st.slider("Fuerza de la restricción para 'Mujeres B'", 0.0, 1.0, 0.5, key="in_inter_lambda")
+            
+            # Simular efecto de la restricción
+            acc_con = acc_base * (1 - 0.1 * lambda_inter) 
+            acc_inter_con = acc_inter_base + (0.95 - acc_inter_base) * lambda_inter 
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Modelo Sin Restricción Interseccional**")
+                st.metric("Precisión General", f"{acc_base:.2%}")
+                st.metric("Precisión en 'Mujeres B'", f"{acc_inter_base:.2%}", delta_color="off")
+            with col2:
+                st.write("**Modelo CON Restricción Interseccional**")
+                st.metric("Precisión General", f"{acc_con:.2%}", delta=f"{(acc_con-acc_base):.2%}")
+                st.metric("Precisión en 'Mujeres B'", f"{acc_inter_con:.2%}", delta=f"{(acc_inter_con-acc_inter_base):.2%}")
+
+            st.info("Al aumentar la fuerza de la restricción para el subgrupo 'Mujeres B', su precisión mejora notablemente. Sin embargo, esto puede causar una ligera disminución en la precisión general del modelo. Este es el 'trade-off' de la equidad.")
+        
+        st.text_area("Aplica a tu caso: ¿Qué restricciones de equidad específicas para subgrupos necesitas incorporar en tu modelo?", key="in_inter")
+
 
     # --- Sección de Reporte ---
     st.markdown("---")
@@ -690,15 +816,18 @@ def fairness_regularized_loss(original_loss, predictions, protected_attribute):
     if st.button("Generar Reporte de In-procesamiento", key="gen_inproc_report"):
         report_data = {
             "Objetivos y Restricciones": {
-                "Restricción de Equidad": st.session_state.in_q1,
-                "Análisis de Compensaciones": st.session_state.in_q2,
+                "Restricción de Equidad": st.session_state.get('in_q1', 'No completado'),
+                "Análisis de Compensaciones": st.session_state.get('in_q2', 'No completado'),
             },
             "Debiasing Adversario": {
-                "Descripción de la Arquitectura": st.session_state.in_q3,
-                "Plan de Optimización": st.session_state.in_q4,
+                "Descripción de la Arquitectura": st.session_state.get('in_q3', 'No completado'),
+                "Plan de Optimización": st.session_state.get('in_q4', 'No completado'),
             },
             "Optimización Multiobjetivo": {
-                "Objetivos a Equilibrar": st.session_state.in_q5,
+                "Objetivos a Equilibrar": st.session_state.get('in_q5', 'No completado'),
+            },
+            "Estrategia Interseccional de In-procesamiento": {
+                "Análisis y Estrategia": st.session_state.get('in_inter', 'No completado'),
             }
         }
         
@@ -727,8 +856,11 @@ def postprocessing_fairness_toolkit():
         st.write("""
         El **Post-procesamiento** consiste en ajustar las predicciones de un modelo *después* de que ya ha sido entrenado. Es como un editor que revisa un texto ya escrito para corregir sesgos o errores. El modelo original no cambia, solo se ajusta su resultado final para que sea más justo.
         """)
-    
-    tab1, tab2, tab3, tab4 = st.tabs(["Optimización de Umbrales", "Calibración", "Transformación de Predicción", "Clasificación con Rechazo"])
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "Optimización de Umbrales", "Calibración", "Transformación de Predicción", 
+        "Clasificación con Rechazo", "🌍 Interseccionalidad"
+    ])
 
     with tab1:
         st.subheader("Técnicas de Optimización de Umbrales")
@@ -779,15 +911,67 @@ def postprocessing_fairness_toolkit():
         
         st.text_area("Aplica a tu caso: ¿Cómo diseñarías un sistema de rechazo?", placeholder="Ejemplo: Rechazaremos las solicitudes de préstamo con probabilidades entre 40% y 60% para revisión manual. La interfaz para el revisor mostrará los datos clave sin revelar el grupo demográfico para evitar sesgos humanos.", key="po_q4")
 
+    with tab5:
+        st.subheader("Interseccionalidad en el Post-procesamiento")
+        with st.expander("🔍 Definición Amigable"):
+            st.write("""
+            Aquí, la interseccionalidad significa que no podemos usar un único umbral de decisión o una única curva de calibración para todos. Cada **subgrupo interseccional** (ej. mujeres jóvenes, hombres mayores de otra etnia) puede tener su propia distribución de puntuaciones y su propia relación con la realidad. Por lo tanto, las técnicas de post-procesamiento deben aplicarse de forma granular para cada subgrupo relevante.
+            """)
+
+        with st.expander("💡 Ejemplo Interactivo: Umbrales para Subgrupos Interseccionales"):
+            st.write("Ajusta los umbrales para cuatro subgrupos interseccionales para lograr la Igualdad de Oportunidades (TPR iguales) entre todos ellos. Observa cómo la tarea se vuelve más compleja.")
+
+            np.random.seed(123)
+            # Simulación de datos para 4 subgrupos
+            grupos = {
+                "Hombres-A": (np.random.normal(0.7, 0.15, 50), np.random.normal(0.4, 0.15, 70)),
+                "Mujeres-A": (np.random.normal(0.65, 0.15, 40), np.random.normal(0.35, 0.15, 80)),
+                "Hombres-B": (np.random.normal(0.6, 0.15, 60), np.random.normal(0.3, 0.15, 60)),
+                "Mujeres-B": (np.random.normal(0.55, 0.15, 30), np.random.normal(0.25, 0.15, 90)),
+            }
+            dfs = {
+                name: pd.DataFrame({
+                    'Puntuación': np.concatenate(scores),
+                    'Real': [1]*len(scores[0]) + [0]*len(scores[1])
+                }) for name, scores in grupos.items()
+            }
+            
+            st.write("#### Ajuste de Umbrales")
+            cols = st.columns(4)
+            umbrales = {}
+            for i, name in enumerate(dfs.keys()):
+                with cols[i]:
+                    umbrales[name] = st.slider(f"Umbral {name}", 0.0, 1.0, 0.5, key=f"po_inter_{i}")
+
+            st.write("#### Resultados (Tasa de Verdaderos Positivos)")
+            tprs = {}
+            cols_res = st.columns(4)
+            for i, name in enumerate(dfs.keys()):
+                df = dfs[name]
+                tpr = np.mean(df[df['Real'] == 1]['Puntuación'] >= umbrales[name])
+                tprs[name] = tpr
+                with cols_res[i]:
+                    st.metric(f"TPR {name}", f"{tpr:.2%}")
+
+            max_tpr_diff = max(tprs.values()) - min(tprs.values())
+            if max_tpr_diff < 0.05:
+                st.success(f"¡Excelente! La máxima diferencia de TPR entre los subgrupos es de solo {max_tpr_diff:.2%}.")
+            else:
+                st.warning(f"Ajusta los umbrales para igualar las TPRs. Diferencia máxima actual: {max_tpr_diff:.2%}")
+
+        st.text_area("Aplica a tu caso: ¿Para qué subgrupos interseccionales necesitas definir umbrales o curvas de calibración separadas?", key="po_inter")
+
+
     # --- Sección de Reporte ---
     st.markdown("---")
     st.header("Generar Reporte del Toolkit de Post-procesamiento")
     if st.button("Generar Reporte de Post-procesamiento", key="gen_postproc_report"):
         report_data = {
-            "Optimización de Umbrales": {"Plan de Implementación": st.session_state.po_q1},
-            "Calibración": {"Plan de Calibración": st.session_state.po_q2},
-            "Transformación de Predicción": {"Método de Transformación Seleccionado": st.session_state.po_q3},
-            "Clasificación con Rechazo": {"Diseño del Sistema de Rechazo": st.session_state.po_q4}
+            "Optimización de Umbrales": {"Plan de Implementación": st.session_state.get('po_q1', 'No completado')},
+            "Calibración": {"Plan de Calibración": st.session_state.get('po_q2', 'No completado')},
+            "Transformación de Predicción": {"Método de Transformación Seleccionado": st.session_state.get('po_q3', 'No completado')},
+            "Clasificación con Rechazo": {"Diseño del Sistema de Rechazo": st.session_state.get('po_q4', 'No completado')},
+            "Estrategia Interseccional de Post-procesamiento": {"Análisis y Estrategia": st.session_state.get('po_inter', 'No completado')}
         }
         
         report_md = "# Reporte del Toolkit de Equidad en Post-procesamiento\n\n"
